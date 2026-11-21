@@ -1083,6 +1083,63 @@
       transition: width 0.16s ease-out;
     }
 
+
+    /* ===================================================================== */
+    /* INTERACTIVE SPOTLIGHT ONBOARDING TUTORIAL (FIRST-TIME & ON RESET)     */
+    /* ===================================================================== */
+    #onboardingSpotlightOverlay {
+      position: fixed;
+      inset: 0;
+      z-index: 9500;
+      pointer-events: auto;
+      overflow: hidden;
+    }
+    #spotlightHoleBox {
+      position: fixed;
+      border: 2.5px solid #00f3ff;
+      border-radius: 10px;
+      box-shadow:
+        0 0 0 9999px rgba(2, 6, 18, 0.82),
+        0 0 24px rgba(0, 243, 255, 0.95),
+        inset 0 0 14px rgba(0, 243, 255, 0.35);
+      pointer-events: none;
+      transition: top 0.28s cubic-bezier(0.22,1,0.36,1), left 0.28s cubic-bezier(0.22,1,0.36,1), width 0.28s cubic-bezier(0.22,1,0.36,1), height 0.28s cubic-bezier(0.22,1,0.36,1);
+      z-index: 9501;
+    }
+    #spotlightHoleBox.spotlight-amber {
+      border-color: #facc15;
+      box-shadow:
+        0 0 0 9999px rgba(2, 6, 18, 0.84),
+        0 0 28px rgba(250, 204, 21, 0.95),
+        inset 0 0 14px rgba(250, 204, 21, 0.35);
+    }
+    @keyframes spotArrowBounce {
+      0%, 100% { transform: translate(-50%, 0); }
+      50% { transform: translate(-50%, -8px); }
+    }
+    #spotlightArrow {
+      position: fixed;
+      z-index: 9505;
+      font-size: 26px;
+      line-height: 1;
+      color: #fde047;
+      text-shadow: 0 0 14px #f59e0b, 0 2px 6px #000000;
+      pointer-events: none;
+      animation: spotArrowBounce 0.85s ease-in-out infinite;
+    }
+    #spotlightCard {
+      position: fixed;
+      z-index: 9510;
+      width: min(350px, 90vw);
+      padding: 14px 16px;
+      pointer-events: auto;
+      transition: top 0.25s ease, left 0.25s ease;
+    }
+    .endless-locked-state {
+      opacity: 0.56 !important;
+      filter: grayscale(0.55) brightness(0.75) !important;
+    }
+
   </style>
 </head>
 <body>
@@ -1276,6 +1333,7 @@
             <button id="btnLaunchEndless" type="button" class="hero-cyan-btn text-xs sm:text-sm font-black">
               <svg class="neon-icon" viewBox="0 0 24 24"><path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.739-8-4.585 0-4.585 8 0 8 5.606 0 7.644-8 12.74-8z"/></svg>
               <span id="t_endlessBtnLabel">ENDLESS MODE</span>
+              <span id="endlessLockIcon" class="hidden text-xs">🔒</span>
             </button>
           </div>
         </div>
@@ -1552,7 +1610,8 @@
               </button>
             </div>
 
-            <div class="pt-3 border-t border-cyan-500/30 flex justify-center">
+            <div class="pt-3 border-t border-cyan-500/30 grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <button id="btnReplayTutorial" type="button" class="neon-btn w-full py-2.5 px-4 text-xs font-black">🎓 REPLAY TUTORIAL</button>
               <button id="btnResetSaveData" type="button" class="neon-btn w-full py-2.5 px-4 text-xs font-black">RESET PROGRESS</button>
             </div>
           </div>
@@ -1711,7 +1770,26 @@
       </div>
     </footer>
 
-    <!-- Toast Notification Banner -->
+  
+  <!-- INTERACTIVE SPOTLIGHT ONBOARDING & ENDLESS UNLOCK GUIDE -->
+  <div id="onboardingSpotlightOverlay" class="hidden" role="dialog" aria-modal="true">
+    <div id="spotlightHoleBox"></div>
+    <div id="spotlightArrow">▼</div>
+    <div id="spotlightCard" class="cockpit-frame">
+      <div class="flex items-center justify-between gap-2 mb-2 border-b border-cyan-500/30 pb-1.5">
+        <span id="spotlightStepBadge" class="px-2 py-0.5 bg-cyan-950 border border-cyan-400 text-[10px] font-black neon-text font-tech">1 / 4</span>
+        <button id="btnSpotlightClose" type="button" class="neon-btn px-2.5 py-0.5 text-[10px] font-black">✕ SKIP</button>
+      </div>
+      <h3 id="spotlightTitle" class="text-sm sm:text-base font-black neon-text mb-1">QUICK LAUNCH</h3>
+      <p id="spotlightDesc" class="text-xs text-cyan-100/90 leading-relaxed mb-3"></p>
+      <div class="flex items-center justify-between gap-2">
+        <button id="btnSpotlightPrev" type="button" class="neon-btn px-3 py-1.5 text-xs font-black">◀ BACK</button>
+        <button id="btnSpotlightNext" type="button" class="neon-launch-btn px-4 py-1.5 text-xs font-black" style="min-height:36px !important;padding:6px 18px !important;">NEXT ▶</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Banner -->
     <div id="toastNotification" class="hidden fixed bottom-20 left-1/2 -translate-x-1/2 z-50 px-5 py-2.5 cockpit-frame border-cyan-400 text-xs sm:text-sm font-black neon-text shadow-2xl"></div>
   </div>
 
@@ -4123,6 +4201,8 @@
       selectedLaserSkinId: 'cyan_default',
       selectedTitleId: null,
       autoFire: true,
+      tutorialDone: false,
+      endlessIntroSeen: false,
       ownedShips: {
         vanguard: { owned: true, hpLv: 1, dmgLv: 1, bulletsLv: 1, rateLv: 1, speedLv: 1 },
         nebula_striker: { owned: false, hpLv: 1, dmgLv: 1, bulletsLv: 1, rateLv: 1, speedLv: 1 },
@@ -4202,6 +4282,8 @@
           selectedLaserSkinId: this.selectedLaserSkinId,
           selectedTitleId: this.selectedTitleId,
           autoFire: this.autoFire,
+          tutorialDone: !!this.tutorialDone,
+          endlessIntroSeen: !!this.endlessIntroSeen,
           ownedShips: this.ownedShips,
           skinsProgress: this.skinsProgress,
           ownedDrones: this.ownedDrones,
@@ -4234,6 +4316,8 @@
         if (data.selectedLaserSkinId && this.skinsProgress[data.selectedLaserSkinId]) this.selectedLaserSkinId = data.selectedLaserSkinId;
         if (data.selectedTitleId !== undefined) this.selectedTitleId = data.selectedTitleId;
         if (typeof data.autoFire === 'boolean') this.autoFire = data.autoFire;
+        if (typeof data.tutorialDone === 'boolean') this.tutorialDone = data.tutorialDone;
+        if (typeof data.endlessIntroSeen === 'boolean') this.endlessIntroSeen = data.endlessIntroSeen;
         if (data.ownedShips) {
           for (const k of Object.keys(this.ownedShips)) {
             if (data.ownedShips[k]) this.ownedShips[k] = { ...this.ownedShips[k], ...data.ownedShips[k] };
@@ -4325,7 +4409,13 @@
           this.endlessTitlesClaimed[k] = false;
         }
         this.stageClearedStars = {};
+        this.tutorialDone = false;
+        this.endlessIntroSeen = false;
         this.save();
+      },
+
+      isEndlessUnlocked() {
+        return (this.unlockedStage || 1) >= 11;
       },
 
       getTotalStars() {
@@ -5485,6 +5575,12 @@
         centerStarMapOnSelectedStage();
       }
       renderAllMenuPanels();
+      if (sceneId === 'screenMainHub' && typeof SpotlightTutorial !== 'undefined') {
+        setTimeout(() => {
+          const sp = document.getElementById('gameSplashLoader');
+          if (sp && sp.classList.contains('splash-hidden')) SpotlightTutorial.checkAutoTriggers();
+        }, 180);
+      }
     }
 
     // =========================================================================
@@ -7789,6 +7885,17 @@
       document.getElementById('activeShipNameTitle').textContent = L(activeStats.def, 'name');
       document.getElementById('activeDronesCountBadge').textContent = `${T('dronesPrefix')}: ${activeDronesCount}/3`;
 
+      // Sync Endless Mode Lock Visual (Locked until Galaxy 1 / Stage 10 is cleared!)
+      const endlessBtn = document.getElementById('btnLaunchEndless');
+      const endlessLock = document.getElementById('endlessLockIcon');
+      const endlessOpen = GameState.isEndlessUnlocked();
+      if (endlessBtn) endlessBtn.classList.toggle('endless-locked-state', !endlessOpen);
+      if (endlessLock) endlessLock.classList.toggle('hidden', endlessOpen);
+      const replayTutBtn = document.getElementById('btnReplayTutorial');
+      if (replayTutBtn) {
+        replayTutBtn.textContent = GameState.lang === 'ar' ? '🎓 إعادة عرض الشرح' : '🎓 REPLAY TUTORIAL';
+      }
+
       // Show Equipped Neon Title Badge on Main Hub if active!
       const hubTitleBadge = document.getElementById('hubEquippedTitleBadge');
       const activeTitle = GameState.getActiveTitle();
@@ -8593,6 +8700,15 @@
     });
 
     document.getElementById('btnLaunchEndless').addEventListener('click', () => {
+      if (!GameState.isEndlessUnlocked()) {
+        SpaceAudio.playHit();
+        showToast(
+          GameState.lang === 'ar'
+            ? '🔒 أنهِ المجرة الأولى (المرحلة 10) لفتح طور اللعب اللانهائي!'
+            : '🔒 Clear Galaxy 1 (Stage 10) to unlock Endless Mode!'
+        );
+        return;
+      }
       startStage(8, true);
     });
 
@@ -8686,9 +8802,194 @@
       CG_WRAPPER.happyTime();
     });
 
+
+    // =========================================================================
+    // 14B. INTERACTIVE SPOTLIGHT ONBOARDING TUTORIAL & ENDLESS UNLOCK GUIDE
+    //      (First-time only + on Reset + Replayable in Settings; 100% Skippable)
+    // =========================================================================
+    const SpotlightTutorial = {
+      active: false,
+      mode: 'onboarding', // 'onboarding' | 'endless_unlock'
+      stepIdx: 0,
+
+      getSteps() {
+        const isAr = GameState.lang === 'ar';
+        if (this.mode === 'endless_unlock') {
+          return [
+            {
+              targetId: 'btnLaunchEndless',
+              amber: true,
+              title: isAr ? '🎉 تم فتح اللعب اللانهائي!' : '🎉 ENDLESS MODE UNLOCKED!',
+              desc: isAr
+                ? 'أحسنت بإنهاء المجرة الأولى! واجه الآن موجات لا تنتهي، وعند الوصول للموجات (5، 10، 18، 28، 40، 55) ستكسب ألقاب نيون مضيئة تظهر أسفل مركبتك!'
+                : 'Galaxy 1 conquered! Survive endless waves to reach Milestones (5, 10, 18, 28, 40, 55) and unlock glowing Neon Pilot Titles displayed under your ship!'
+            }
+          ];
+        }
+        return [
+          {
+            targetId: 'btnQuickStart',
+            amber: true,
+            title: isAr ? '⚡ ابدأ المعركة فوراً' : '⚡ QUICK LAUNCH',
+            desc: isAr
+              ? 'اضغط هنا للانطلاق مباشرةً في مرحلتك الحالية! حرّك المركبة بالماوس أو اللمس، والإطلاق يعمل تلقائياً.'
+              : 'Tap here to jump straight into your active mission! Move with Mouse, WASD, or Touch — your ship auto-fires.'
+          },
+          {
+            targetId: 'tabBtnPlay',
+            amber: false,
+            title: isAr ? '🌌 خريطة المجرات والكواكب' : '🌌 GALAXY & PLANET MAP',
+            desc: isAr
+              ? 'استكشف 3 مجرات و30 مرحلة! حافظ على 85% من صحتك عند الفوز لتحصد 3 نجوم (★★★) في كل كوكب.'
+              : 'Explore 3 galaxies & 30 planets! Finish stages with 85%+ HP to earn all 3 Stars (★★★) on every planet.'
+          },
+          {
+            targetId: 'tabBtnShips',
+            amber: false,
+            title: isAr ? '🚀 الترسانة وتطوير المركبات' : '🚀 SHIP HANGAR & UPGRADES',
+            desc: isAr
+              ? 'استخدم الكريستال لشراء 5 مركبات حربية وتطوير الدروع والمدافع والطائرات المسيّرة ومهارات القائد.'
+              : 'Spend Crystals to unlock 5 starfighters and upgrade Hull, Weapons, Wingman Drones & Commander Skills.'
+          },
+          {
+            targetId: 'tabBtnCodex',
+            amber: false,
+            title: isAr ? '★ المهام والألقاب النيونية' : '★ MISSIONS & NEON TITLES',
+            desc: isAr
+              ? 'اجمع مكافآت المهام اليومية ومهام النجوم الـ 90، وافتح اللعب اللانهائي بعد إنهاء المجرة الأولى!'
+              : 'Claim Daily & Star Hunter rewards, collect all 90 Stars for the Star Emperor title, and clear Galaxy 1 to unlock Endless Mode!'
+          }
+        ];
+      },
+
+      start(mode = 'onboarding') {
+        if (World.mode !== 'MENU' || GameState.activeMenuScene !== 'screenMainHub') {
+          navigateToScene('screenMainHub');
+        }
+        this.mode = mode;
+        this.stepIdx = 0;
+        this.active = true;
+        document.getElementById('onboardingSpotlightOverlay').classList.remove('hidden');
+        this.renderStep();
+      },
+
+      finish() {
+        this.active = false;
+        document.getElementById('onboardingSpotlightOverlay').classList.add('hidden');
+        if (this.mode === 'onboarding') {
+          GameState.tutorialDone = true;
+          // If Endless is already unlocked (e.g. Showcase build), mark intro seen or let user explore cleanly
+        } else if (this.mode === 'endless_unlock') {
+          GameState.endlessIntroSeen = true;
+        }
+        GameState.save();
+      },
+
+      renderStep() {
+        if (!this.active) return;
+        const steps = this.getSteps();
+        const st = steps[this.stepIdx];
+        if (!st) { this.finish(); return; }
+
+        const targetEl = document.getElementById(st.targetId);
+        const hole = document.getElementById('spotlightHoleBox');
+        const arrow = document.getElementById('spotlightArrow');
+        const card = document.getElementById('spotlightCard');
+        const isAr = GameState.lang === 'ar';
+
+        document.getElementById('spotlightStepBadge').textContent = `${this.stepIdx + 1} / ${steps.length}`;
+        document.getElementById('spotlightTitle').textContent = st.title;
+        document.getElementById('spotlightDesc').textContent = st.desc;
+        document.getElementById('btnSpotlightClose').textContent = isAr ? '✕ تخطي' : '✕ SKIP';
+
+        const prevBtn = document.getElementById('btnSpotlightPrev');
+        const nextBtn = document.getElementById('btnSpotlightNext');
+        if (prevBtn) {
+          prevBtn.classList.toggle('hidden', this.stepIdx === 0);
+          prevBtn.textContent = isAr ? '◀ السابق' : '◀ BACK';
+        }
+        if (nextBtn) {
+          const isLast = this.stepIdx >= steps.length - 1;
+          nextBtn.textContent = isLast
+            ? (isAr ? '✓ ابدأ اللعب!' : '✓ GOT IT!')
+            : (isAr ? 'التالي ▶' : 'NEXT ▶');
+        }
+
+        if (targetEl && hole && card && arrow) {
+          const rect = targetEl.getBoundingClientRect();
+          const pad = 6;
+          hole.classList.toggle('spotlight-amber', !!st.amber);
+          hole.style.left = `${Math.max(4, rect.left - pad)}px`;
+          hole.style.top = `${Math.max(4, rect.top - pad)}px`;
+          hole.style.width = `${rect.width + pad * 2}px`;
+          hole.style.height = `${rect.height + pad * 2}px`;
+
+          // Measure actual rendered card dimensions AFTER updating text to guarantee ZERO overlap!
+          const actualW = card.offsetWidth || Math.min(350, window.innerWidth * 0.9);
+          const actualH = card.offsetHeight || 195;
+          const gap = 46; // Generous clearance so the card & bouncing arrow NEVER touch the highlighted box
+          const spaceAbove = rect.top - pad;
+          const spaceBelow = window.innerHeight - (rect.bottom + pad);
+          const placeAbove = (spaceAbove >= actualH + gap + 8) || (spaceAbove >= spaceBelow);
+
+          const centerX = rect.left + rect.width / 2;
+          const cardLeft = Math.max(12, Math.min(window.innerWidth - actualW - 12, centerX - actualW / 2));
+          let cardTop;
+          if (placeAbove) {
+            cardTop = Math.max(10, (rect.top - pad) - actualH - gap);
+          } else {
+            cardTop = Math.min(window.innerHeight - actualH - 10, (rect.bottom + pad) + gap);
+          }
+
+          card.style.left = `${cardLeft}px`;
+          card.style.top = `${cardTop}px`;
+
+          arrow.textContent = placeAbove ? '▼' : '▲';
+          arrow.style.left = `${centerX}px`;
+          arrow.style.top = placeAbove
+            ? `${Math.max(cardTop + actualH + 4, rect.top - pad - 32)}px`
+            : `${Math.min(cardTop - 28, rect.bottom + pad + 8)}px`;
+        }
+      },
+
+      checkAutoTriggers() {
+        if (this.active || World.mode !== 'MENU' || GameState.activeMenuScene !== 'screenMainHub') return;
+        if (!GameState.tutorialDone) {
+          this.start('onboarding');
+        } else if (GameState.isEndlessUnlocked() && !GameState.endlessIntroSeen) {
+          this.start('endless_unlock');
+        }
+      }
+    };
+
+    document.getElementById('btnSpotlightClose').addEventListener('click', () => SpotlightTutorial.finish());
+    document.getElementById('btnSpotlightPrev').addEventListener('click', () => {
+      if (SpotlightTutorial.stepIdx > 0) {
+        SpotlightTutorial.stepIdx--;
+        SpotlightTutorial.renderStep();
+      }
+    });
+    document.getElementById('btnSpotlightNext').addEventListener('click', () => {
+      const steps = SpotlightTutorial.getSteps();
+      if (SpotlightTutorial.stepIdx < steps.length - 1) {
+        SpotlightTutorial.stepIdx++;
+        SpotlightTutorial.renderStep();
+      } else {
+        SpotlightTutorial.finish();
+      }
+    });
+    document.getElementById('btnReplayTutorial').addEventListener('click', () => {
+      SpotlightTutorial.start('onboarding');
+    });
+    window.addEventListener('resize', () => {
+      if (SpotlightTutorial.active) SpotlightTutorial.renderStep();
+    });
+
     document.getElementById('btnResetSaveData').addEventListener('click', () => {
       GameState.resetAll();
       renderAllMenuPanels();
+      navigateToScene('screenMainHub');
+      setTimeout(() => SpotlightTutorial.start('onboarding'), 200);
     });
 
     // =========================================================================
@@ -9017,6 +9318,7 @@
       setTimeout(() => {
         const sp = document.getElementById('gameSplashLoader');
         if (sp) sp.classList.add('splash-hidden');
+        setTimeout(() => SpotlightTutorial.checkAutoTriggers(), 320);
       }, 260);
     };
   </script>
